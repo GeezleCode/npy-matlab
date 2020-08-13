@@ -25,18 +25,33 @@ header = constructNPYheader(dataType, shape, fortranOrder, littleEndian);
 % ** TODO: need to put the header into a temp file instead, in case the
 % outFilename is the same as the inFilename (and then delete the temp file
 % later)
-fid = fopen(tempFilename, 'w');
+[fDir,fName,fExt] = fileparts(inFilename);
+headFilename = fullfile(fDir,['tmp_' fName fExt]);
+if strcmp(inFilename, outFilename)
+    outFilename = fullfile(fDir,['out_' fName fExt]);
+    moveFlag = true;
+else
+    moveFlag = false;
+end
+
+fid = fopen(headFilename, 'w');
 fwrite(fid, header, 'uint8');
 fclose(fid)
 
+    
 str = computer;
 switch str
     case {'PCWIN', 'PCWIN64'}
-        [~,~] = system(sprintf('copy /b %s+%s %s', tempFilename, inFilename, outFilename));
+        [~,~] = system(sprintf('copy /b %s + %s %s', headFilename, inFilename, outFilename));
     case {'GLNXA64', 'MACI64'}
-        [~,~] = system(sprintf('cat %s %s > %s', tempFilename, inFilename, outFilename));
+        [~,~] = system(sprintf('cat %s %s > %s', headFilename, inFilename, outFilename));
         
     otherwise
-        fprintf(1, 'I don''t know how to concatenate files for your OS, but you can finish making the NPY youself by concatenating %s with %s.\n', tempFilename, inFilename);
+        fprintf(1, 'I don''t know how to concatenate files for your OS, but you can finish making the NPY youself by concatenating %s with %s.\n', headFilename, inFilename);
 end
     
+% clean up
+delete(headFilename);
+if moveFlag
+    movefile(outFilename,inFilename);
+end
